@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "ReverseImageSearchApp",
+    "slug": "ReverseImageSearchApp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./src/assets/images/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "androidStatusBar": {
+      "translucent": false,
+      "backgroundColor": "#F8FAFC",
+      "barStyle": "dark-content"
+    },
+    "splash": {
+      "image": "./src/assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.sharafat_706.ReverseImageSearchApp"
+    },
+    "web": {
+      "favicon": "./src/assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
+  }
+}
