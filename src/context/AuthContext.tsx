@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }: any) => {
 
   const bootstrapAuth = async () => {
     const refreshToken = await SecureStore.getItemAsync("refresh_token");
-    //console.log("Bootstrap Refresh Token:", refreshToken);
+    console.log("Bootstrap Refresh Token:", refreshToken);
     if (!refreshToken) {
         setLoading(false);
         return;
@@ -46,6 +46,16 @@ export const AuthProvider = ({ children }: any) => {
 
       const newAccess = await SecureStore.getItemAsync("access_tokens") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OWExNjJlYjRiYmFiMzczOWUwNDU4NjMiLCJpYXQiOjE3NzI4ODA2MDUsImV4cCI6MTc3Mjg4NDIwNX0.lAyutUfQibBWXLkyFhBKMxVQhFy4qkGIbItQ9kDPRIE";
       const profile = await getProfile(newAccess);
+      // console.log("Bootstrap Profile:", profile);
+      if(profile == null) {
+        await SecureStore.deleteItemAsync("access_token");
+        await SecureStore.deleteItemAsync("refresh_token");
+        //refresh token might be invalid or expired, clear stored tokens and reset state
+        setAccessToken(null);
+        setRefreshToken(null);
+        setLoading(false);
+        return;
+      }
       setUser(profile);
       setEmailVerified(profile.emailVerified);
       setLoading(false);

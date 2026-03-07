@@ -76,6 +76,7 @@ export async function refreshTokenAPI(refreshToken: string) {
 }
 
 export async function getProfile(accessToken: any) { 
+    console.log("Getting profile with access token:", accessToken);
     try {
         const response = await axios.get(
             `${API_BASE_URL}/me`,
@@ -88,9 +89,11 @@ export async function getProfile(accessToken: any) {
         if (response.status !== 200) {
             throw new Error(response.data.message || "Failed to fetch profile");
         }
-        // console.log("Profile Response:", JSON.stringify(response.data));
         return response.data.data;
     } catch (error: any) {
+        if(error.response?.status === 401) {
+            return null; // Token might be invalid or expired, will trigger re-authentication
+        }
         throw new Error(error.response?.data?.message || "Failed to fetch profile");
     }   
 }
