@@ -1,4 +1,4 @@
-import React, { useState, useRef, useContext } from "react";
+import React, { useState, useRef, useContext, useEffect } from "react";
 import {
   View,
   Text,
@@ -16,13 +16,13 @@ import * as Clipboard from "expo-clipboard";
 import * as SecureStore from "expo-secure-store";
 
 import { AuthContext } from "../../context/AuthContext";
-import { verifyOtp, resendOtp } from "../../services/auth_api";
+import { verifyOtp, resendOtp, sendForgotPasswordOTP } from "../../services/auth_api";
 
 const OTP_LENGTH = 6;
-const RESEND_SECONDS = 60;
+const RESEND_SECONDS = 90; // 15 minutes
 
-export default function OtpScreen({ route }: any) {
-  const { email } = route.params;
+export default function OtpScreen({ route, navigation }: any) {
+  const { email, forgot } = route.params;
   const { login } = useContext(AuthContext);
 
   const [otp, setOtp] = useState(Array(OTP_LENGTH).fill(""));
@@ -33,6 +33,16 @@ export default function OtpScreen({ route }: any) {
 
   const inputs = useRef<TextInput[]>([]);
   const shakeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (forgot) {
+      Alert.alert("OTP Sent", `A password reset OTP has been sent to ${email}`);
+    } else {
+      Alert.alert("OTP Sent", `A verification OTP has been sent to ${email}`);
+    }
+  }, [email, forgot]);
+
+
 
   /* Shake animation */
   const triggerShake = () => {
@@ -59,7 +69,8 @@ export default function OtpScreen({ route }: any) {
     const code = newOtp.join("");
 
     if (code.length === OTP_LENGTH && !code.includes("")) {
-      handleVerify(code);
+      Alert.alert("Verifying OTP...");
+      // handleVerify(code);
     }
   };
 
@@ -72,17 +83,37 @@ export default function OtpScreen({ route }: any) {
 
   /* Verify OTP */
   const handleVerify = async (otpCode?: string) => {
+    if (loading) return;
+
     const code = otpCode || otp.join("");
 
     if (code.length !== OTP_LENGTH) {
-      Alert.alert("Invalid OTP", "Enter 6 digit OTP");
+      Alert.alert("Invalid OTP", "Enter 6 digits OTP");
       return;
     }
 
     try {
       setLoading(true);
 
-      const response = await verifyOtp(code);
+      const token = (await SecureStore.getItemAsync("access_token")) || "";
+
+      let response;
+      if (forgot) {
+        response = await verifyOtp(code, token, true, email);
+        if (response.success) {
+          const resetToken = response.resetToken;
+          navigation.navigate("ResetPassword", {
+            resetToken: resetToken,
+            email: email
+          });
+        }
+        
+        return;
+      }
+      else {
+        response = await verifyOtp(code, token, false, email);
+      }
+
 
       const { accessToken, refreshToken } = response;
 
@@ -100,32 +131,25 @@ export default function OtpScreen({ route }: any) {
     }
   };
 
-  /* Clipboard paste */
-  const pasteOtp = async () => {
-    const text = await Clipboard.getStringAsync();
-
-    if (/^\d{6}$/.test(text)) {
-      const digits = text.split("");
-      setOtp(digits);
-      handleVerify(text);
-    } else {
-      Alert.alert("Clipboard", "No valid OTP found");
-    }
-  };
-
   /* Resend OTP */
   const handleResend = async () => {
     try {
-      let accessToken = await SecureStore.getItemAsync("access_token");
+      if (forgot) {
+        await sendForgotPasswordOTP(email);
+      }
+      else {
+        let accessToken = await SecureStore.getItemAsync("access_token");
 
-      if (!accessToken) {
-        Alert.alert("Error", "Access token not found");
-        return;
+        await resendOtp(accessToken || "",);
       }
 
-      await resendOtp(accessToken);
 
-      Alert.alert("OTP Resent", "Check your email again");
+      Alert.alert(
+        "OTP Resent",
+        forgot
+          ? "Password reset OTP sent to your email"
+          : "Verification OTP sent to your email"
+      );
 
       setResendEnabled(false);
       setTimerKey(prev => prev + 1);
@@ -140,10 +164,14 @@ export default function OtpScreen({ route }: any) {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <Text style={styles.title}>Verify Your Account</Text>
+      <Text style={styles.title}>
+        {forgot ? "Reset Password Verification" : "Verify Your Account"}
+      </Text>
 
       <Text style={styles.subtitle}>
-        Enter the code sent to {email}
+        {forgot
+          ? `Enter the OTP sent to ${email} to reset your password`
+          : `Enter the verification code sent to ${email}`}
       </Text>
 
       {/* OTP BOXES */}
@@ -167,11 +195,6 @@ export default function OtpScreen({ route }: any) {
         ))}
       </Animated.View>
 
-      {/* PASTE BUTTON */}
-      {/* <TouchableOpacity onPress={pasteOtp}>
-        <Text style={styles.paste}>Paste Code</Text>
-      </TouchableOpacity> */}
-
       {/* VERIFY BUTTON */}
       <TouchableOpacity
         style={{ width: "100%" }}
@@ -184,7 +207,9 @@ export default function OtpScreen({ route }: any) {
         >
           {loading
             ? <ActivityIndicator color="#FFFFFF" />
-            : <Text style={styles.buttonText}>Verify</Text>}
+            : <Text style={styles.buttonText}>
+              {forgot ? "Verify OTP" : "Verify Email"}
+            </Text>}
         </LinearGradient>
       </TouchableOpacity>
 

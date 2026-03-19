@@ -1,4 +1,4 @@
-import React, { useEffect, useRef,useContext } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,156 +6,125 @@ import {
   Animated,
   Easing
 } from "react-native";
-import * as SplashScreen from "expo-splash-screen";
-import { AuthContext } from "../context/AuthContext";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 
-
-SplashScreen.preventAutoHideAsync();
-
-export default function CustomSplash({ onFinish }: any) {
+export default function CustomSplash() {
   const progress = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const { bootstrapAuth } = useContext(AuthContext);
-
-  // useEffect(() => {
-  //   Animated.timing(progress, {
-  //     toValue: 1,
-  //     duration: 2200,
-  //     easing: Easing.inOut(Easing.ease),
-  //     useNativeDriver: false
-  //   }).start();
-
-  //   Animated.timing(fadeAnim, {
-  //     toValue: 1,
-  //     duration: 1200,
-  //     useNativeDriver: true
-  //   }).start();
-
-  //   setTimeout(async () => {
-  //     await SplashScreen.hideAsync();
-  //     onFinish();
-  //   }, 2500);
-  // }, []);
 
   useEffect(() => {
-  const initializeApp = async () => {
-    try {
+    Animated.timing(progress, {
+      toValue: 1,
+      duration: 2200,
+      easing: Easing.inOut(Easing.ease),
+      useNativeDriver: false
+    }).start();
 
-      Animated.timing(progress, {
-        toValue: 1,
-        duration: 2200,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: false
-      }).start();
-
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1200,
-        useNativeDriver: true
-      }).start();
-
-      const user = await bootstrapAuth();
-
-      await SplashScreen.hideAsync();
-
-      if (!user) {
-        onFinish("auth");
-        return;
-      }
-
-      if (!user.emailVerified) {
-        onFinish("verify");
-        return;
-      }
-
-      onFinish("home");
-
-    } catch (error) {
-      //console.log("Splash bootstrap error:", error);
-      onFinish("auth");
-    }
-  };
-
-  initializeApp();
-}, []);
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 1200,
+      useNativeDriver: true
+    }).start();
+  }, []);
 
   const widthInterpolated = progress.interpolate({
     inputRange: [0, 1],
-    outputRange: ["0%", "90%"]
+    outputRange: ["0%", "100%"]
   });
 
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={["#3B82F6", "#2563EB"]}
+      style={styles.container}
+    >
       <Animated.View style={{ opacity: fadeAnim }}>
-        <View style={{ alignItems: "center" }}>
-        <View style={styles.logoBox}>
-          <Text style={styles.logoIcon}>🎯</Text>
-        </View>
+        <View style={styles.centerContent}>
+          
+          <View style={styles.logoBox}>
+            <Ionicons name="scan-outline" size={40} color="#2563EB" />
+          </View>
 
-        <Text style={styles.title}>VisionSearch</Text>
-        <Text style={styles.subtitle}>Search with your eyes</Text>
+          <Text style={styles.title}>VisionSearch AI</Text>
+          <Text style={styles.subtitle}>Search with your eyes</Text>
         </View>
       </Animated.View>
 
-      <View style={styles.progressContainer}>
-        <Animated.View
-          style={[styles.progressBar, { width: widthInterpolated }]}
-        />
-      </View>
+      <View style={styles.bottomSection}>
+        <Text style={styles.initializing}>INITIALIZING</Text>
 
-      <Text style={styles.powered}>POWERED BY VISION AI</Text>
-    </View>
+        <View style={styles.progressContainer}>
+          <Animated.View
+            style={[styles.progressBar, { width: widthInterpolated }]}
+          />
+        </View>
+
+        <Text style={styles.powered}>POWERED BY VISION AI</Text>
+      </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1E40AF",
     justifyContent: "center",
     alignItems: "center"
   },
+  centerContent: {
+    alignItems: "center"
+  },
   logoBox: {
+    width: 90,
+    height: 90,
+    borderRadius: 22,
     backgroundColor: "white",
-    width: 110,
-    height: 110,
-    borderRadius: 24,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 30
-  },
-  logoIcon: {
-    fontSize: 45
+    marginBottom: 25,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5
   },
   title: {
     color: "white",
-    fontSize: 28,
-    fontWeight: "700",
-    textAlign: "center"
+    fontSize: 26,
+    fontWeight: "700"
   },
   subtitle: {
     color: "#DCEBFF",
     marginTop: 6,
-    textAlign: "center"
+    fontSize: 14
+  },
+  bottomSection: {
+    position: "absolute",
+    bottom: 80,
+    width: "75%",
+    alignItems: "center"
+  },
+  initializing: {
+    color: "#DCEBFF",
+    fontSize: 11,
+    letterSpacing: 2,
+    marginBottom: 10
   },
   progressContainer: {
-    position: "absolute",
-    bottom: 120,
-    width: "70%",
-    height: 4,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 2
+    width: "100%",
+    height: 3,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    borderRadius: 2,
+    overflow: "hidden"
   },
   progressBar: {
-    height: 4,
+    height: 3,
     backgroundColor: "white",
     borderRadius: 2
   },
   powered: {
-    position: "absolute",
-    bottom: 70,
+    marginTop: 14,
     color: "#BFD8FF",
     fontSize: 10,
-    letterSpacing: 1
+    letterSpacing: 1.2
   }
 });

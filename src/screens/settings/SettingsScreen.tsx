@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,160 +8,229 @@ import {
   ScrollView,
   Image,
   ActivityIndicator,
+  TextInput,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import * as SecureStore from "expo-secure-store";
 import { AuthContext } from "../../context/AuthContext";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { updateProfileAPI } from "../../services/auth_api";
 
+export default function SettingsScreen({ navigation }: any) {
+  const [notifications, setNotifications] = useState(true);
+  const { logout, user, updateProfile } = useContext(AuthContext);
 
-export default function SettingsScreen() {
-  const [notifications, setNotifications] = React.useState(true);
-  const { logout } = useContext(AuthContext);
   const [loggingOut, setLoggingOut] = useState(false);
 
-const handleLogout = async () => {
-  try {
-    setLoggingOut(true);
+  const [editingName, setEditingName] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-    await new Promise(resolve => setTimeout(resolve, 2000));
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
 
-    await logout();
-  } catch (error) {
-    //console.log("Logout Error:", error);
-  } finally {
-    setLoggingOut(false);
-  }
-};
+  useEffect(() => {
+    if (user) {
+      setFirstName(user.firstName || "");
+      setLastName(user.lastName || "");
+    }
+  }, [user]);
+
+  const handleLogout = async () => {
+    try {
+      setLoggingOut(true);
+
+
+      await logout();
+    } catch (error) {
+      console.log("Logout Error:", error);
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
+  const saveName = async () => {
+    try {
+      setSaving(true);
+
+      const accessToken = await SecureStore.getItemAsync("access_token");
+      // TODO: replace with your API call
+      await updateProfileAPI({ firstName, lastName }, accessToken || "");
+      updateProfile({ firstName, lastName });
+      console.log("Updated name:", firstName, lastName);
+
+      setEditingName(false);
+    } catch (error) {
+      console.log("Update name error", error);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Settings</Text>
-      </View>
-
-      {/* Profile Section */}
-      <View style={styles.profileContainer}>
-        <Image
-          source={{
-            uri: "https://i.pravatar.cc/150?img=12",
-          }}
-          style={styles.avatar}
-        />
-
-        <TouchableOpacity style={styles.editBadge}>
-          <Ionicons name="pencil" size={14} color="#FFFFFF" />
-        </TouchableOpacity>
-
-        <Text style={styles.name}>Sharafat Ali</Text>
-        <Text style={styles.email}>shan.ali3199@gmail.com</Text>
-      </View>
-
-      {/* Subscription Card */}
-      <LinearGradient
-        colors={["#2563EB", "#1E40AF"]}
-        style={styles.subscriptionCard}
-      >
-        <View>
-          <Text style={styles.planLabel}>Current Plan</Text>
-          <Text style={styles.planName}>VisionSearch Pro</Text>
-          <Text style={styles.renewText}>Renews on Oct 12, 2025</Text>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Settings</Text>
         </View>
 
-        <TouchableOpacity style={styles.manageButton}>
-          <Text style={styles.manageText}>Manage</Text>
-        </TouchableOpacity>
-      </LinearGradient>
-
-      {/* Account Settings */}
-      <Text style={styles.sectionTitle}>ACCOUNT SETTINGS</Text>
-
-      <View style={styles.card}>
-        <SettingsRow
-          icon="lock-closed-outline"
-          title="Change Password"
-        />
-
-        <SettingsRow
-          icon="notifications-outline"
-          title="Notifications"
-          rightElement={
-            <Switch
-              value={notifications}
-              onValueChange={setNotifications}
-              thumbColor="#FFFFFF"
-              trackColor={{ true: "#2563EB" }}
-            />
-          }
-        />
-      </View>
-
-      {/* App Preferences */}
-      <Text style={styles.sectionTitle}>APP PREFERENCES</Text>
-
-      <View style={styles.card}>
-        <SettingsRow
-          icon="moon-outline"
-          title="Dark Mode"
-          subtitle="System"
-        />
-
-        <SettingsRow
-          icon="language-outline"
-          title="Language"
-          subtitle="English (US)"
-        />
-      </View>
-
-      {/* Info */}
-      <Text style={styles.sectionTitle}>MORE INFORMATION</Text>
-
-      <View style={styles.card}>
-        <SettingsRow
-          icon="information-circle-outline"
-          title="About VisionSearch"
-        />
-
-        <SettingsRow
-          icon="shield-checkmark-outline"
-          title="Privacy Policy"
-        />
-
-        <SettingsRow
-          icon="document-text-outline"
-          title="Terms of Service"
-        />
-      </View>
-
-      {/* Logout */}
-
-      <TouchableOpacity
-        style={styles.logoutButton}
-        onPress={handleLogout}
-        disabled={loggingOut}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="log-out-outline" size={18} color="#EF4444" />
-        <Text style={styles.logoutText}>Logout</Text>
-
-        {loggingOut && (
-          <ActivityIndicator
-            size="small"
-            color="#EF4444"
-            style={{ marginLeft: 8 }}
+        {/* Profile Section */}
+        <View style={styles.profileContainer}>
+          <Image
+            source={{
+              uri: "https://i.pravatar.cc/150?img=12",
+            }}
+            style={styles.avatar}
           />
-        )}
-      </TouchableOpacity>
 
-      <Text style={styles.version}>Version 1.2.0 (Build 402)</Text>
-    </ScrollView>
+          <TouchableOpacity
+            style={styles.editBadge}
+            onPress={() => setEditingName(true)}
+          >
+            <Ionicons name="pencil" size={14} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          {editingName ? (
+            <View style={styles.editNameContainer}>
+              <TextInput
+                value={firstName}
+                onChangeText={setFirstName}
+                placeholder="First name"
+                style={styles.input}
+              />
+
+              <TextInput
+                value={lastName}
+                onChangeText={setLastName}
+                placeholder="Last name"
+                style={styles.input}
+              />
+
+              <TouchableOpacity style={styles.saveButton} onPress={saveName}>
+                {saving ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.saveText}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              <TouchableOpacity onPress={() => setEditingName(true)}>
+                <Text style={styles.name}>
+                  {user?.firstName} {user?.lastName}
+                </Text>
+              </TouchableOpacity>
+
+              <Text style={styles.email}>{user?.email}</Text>
+            </>
+          )}
+        </View>
+
+        {/* Subscription Card */}
+        <LinearGradient
+          colors={["#2563EB", "#1E40AF"]}
+          style={styles.subscriptionCard}
+        >
+          <View>
+            <Text style={styles.planLabel}>Current Plan</Text>
+            <Text style={styles.planName}>VisionSearch Pro</Text>
+            <Text style={styles.renewText}>Renews on Oct 12, 2025</Text>
+          </View>
+
+          <TouchableOpacity style={styles.manageButton}>
+            <Text style={styles.manageText}>Manage</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+
+        {/* Account Settings */}
+        <Text style={styles.sectionTitle}>ACCOUNT SETTINGS</Text>
+
+        <View style={styles.card}>
+          <SettingsRow
+            icon="lock-closed-outline"
+            title="Change Password"
+          />
+
+          <SettingsRow
+            icon="notifications-outline"
+            title="Notifications"
+            rightElement={
+              <Switch
+                value={notifications}
+                onValueChange={setNotifications}
+                thumbColor="#FFFFFF"
+                trackColor={{ true: "#2563EB" }}
+              />
+            }
+          />
+        </View>
+
+        {/* App Preferences */}
+        <Text style={styles.sectionTitle}>APP PREFERENCES</Text>
+
+        <View style={styles.card}>
+          <SettingsRow
+            icon="moon-outline"
+            title="Dark Mode"
+            subtitle="System"
+          />
+
+          <SettingsRow
+            icon="language-outline"
+            title="Language"
+            subtitle="English (US)"
+          />
+        </View>
+
+        {/* Info */}
+        <Text style={styles.sectionTitle}>MORE INFORMATION</Text>
+
+        <View style={styles.card}>
+          <SettingsRow
+            icon="information-circle-outline"
+            title="About VisionSearch"
+          />
+
+          <SettingsRow
+            icon="shield-checkmark-outline"
+            title="Privacy Policy"
+          />
+
+          <SettingsRow
+            icon="document-text-outline"
+            title="Terms of Service"
+          />
+        </View>
+
+        {/* Logout */}
+
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          disabled={loggingOut}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="log-out-outline" size={18} color="#EF4444" />
+          <Text style={styles.logoutText}>Logout</Text>
+
+          {loggingOut && (
+            <ActivityIndicator
+              size="small"
+              color="#EF4444"
+              style={{ marginLeft: 8 }}
+            />
+          )}
+        </TouchableOpacity>
+
+        <Text style={styles.version}>Version 1.2.0 (Build 402)</Text>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-/* Reusable Row Component */
 const SettingsRow = ({
   icon,
   title,
@@ -232,6 +301,34 @@ const styles = StyleSheet.create({
     color: "#64748B",
     fontSize: 13,
     marginTop: 4,
+  },
+
+  editNameContainer: {
+    width: "80%",
+    alignItems: "center",
+  },
+
+  input: {
+    width: "100%",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+
+  saveButton: {
+    backgroundColor: "#2563EB",
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+  },
+
+  saveText: {
+    color: "#fff",
+    fontWeight: "600",
   },
 
   subscriptionCard: {

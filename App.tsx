@@ -5,24 +5,11 @@ import AuthNavigator from "./src/navigation/AuthNavigator";
 import MainTabs from "./src/navigation/MainTabs";
 import { View, ActivityIndicator } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import CustomSplash from "./src/screens/SplashScreen";
+import RootNavigator from "./src/navigation/RootNavigator";
+import * as SplashScreen from "expo-splash-screen";
 
-function RootNavigator() {
-  const { accessToken, emailVerified, loading } = useContext(AuthContext);
-
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#2563EB" />
-      </View>
-    );
-  }
-
-  if (!accessToken || !emailVerified) {
-    return <AuthNavigator />;
-  }
-
-  return <MainTabs />;
-}
+SplashScreen.preventAutoHideAsync(); // only here
 
 export default function App() {
   return (

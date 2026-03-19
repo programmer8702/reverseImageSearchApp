@@ -18,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { AuthContext } from "../../context/AuthContext";
 import { loginUser, registerUser, sendEmailVerificationOTP } from "../../services/auth_api";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function AuthScreen({ navigation, route }: any) {
   const { login } = useContext(AuthContext);
@@ -30,6 +31,11 @@ export default function AuthScreen({ navigation, route }: any) {
   const [lastName, setLastName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [phone, setPhone] = useState("");
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const toggleAnim = useRef(new Animated.Value(0)).current;
 
@@ -78,20 +84,20 @@ export default function AuthScreen({ navigation, route }: any) {
         if (!accessToken || !refreshToken) {
           throw new Error("Invalid token response");
         }
-        await login(accessToken, refreshToken);
         if (!response.emailVerified) {
           await sendEmailVerificationOTP(accessToken);
           navigation.navigate("OtpScreen", { email });
           return;
         }
-        else{
-
-          navigation.navigate("Home");
-          return;
-        }
+        await login(accessToken, refreshToken);
+        // else{
+        //   navigation.navigate("MainTabs");
+        //   return;
+        // }
+        
       }
       else {
-        response = await registerUser(email, password, firstName, lastName);
+        response = await registerUser(email, password, firstName, lastName, phone);
         if (response.code && response.code !== 201) {
           throw new Error(response.message || "Registration failed");
         }
@@ -101,7 +107,7 @@ export default function AuthScreen({ navigation, route }: any) {
         // refreshToken = response.refreshToken;
       }
 
-    
+
 
     } catch (error: any) {
       Alert.alert("Authentication Failed", error.message);
@@ -129,7 +135,7 @@ export default function AuthScreen({ navigation, route }: any) {
               </View>
             </View>
 
-            <Text style={styles.title}>FaceFind AI</Text>
+            <Text style={styles.title}>VisionSearch AI</Text>
             <Text style={styles.subtitle}>
               Search faces. Detect duplicates. Discover identities.
             </Text>
@@ -202,26 +208,75 @@ export default function AuthScreen({ navigation, route }: any) {
                 value={email}
                 onChangeText={setEmail}
               />
+              {!isLogin && (
+                <>
+                  <Text style={styles.label}>Phone Number</Text>
+                  <TextInput
+                    placeholder="+1 234 567 890"
+                    style={styles.input}
+                    keyboardType="phone-pad"
+                    value={phone}
+                    onChangeText={setPhone}
+                  />
+                </>
+              )}
 
               <Text style={styles.label}>Password</Text>
-              <TextInput
-                placeholder="••••••••"
-                secureTextEntry
-                style={styles.input}
-                value={password}
-                onChangeText={setPassword}
-              />
+
+              <View style={styles.passwordWrapper}>
+                <TextInput
+                  placeholder="••••••••"
+                  secureTextEntry={!showPassword}
+                  style={styles.passwordInput}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-off" : "eye"}
+                    size={20}
+                    color="#64748B"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {isLogin && (
+                <TouchableOpacity
+                  style={{ alignSelf: "flex-end", marginBottom: 20 }}
+                  onPress={() => navigation.navigate("ForgotPassword", { 'forgot': true, email })}
+                >
+                  <Text style={styles.forgot}>Forgot Password?</Text>
+                </TouchableOpacity>
+              )}
 
               {!isLogin && (
                 <>
                   <Text style={styles.label}>Confirm Password</Text>
-                  <TextInput
-                    placeholder="••••••••"
-                    secureTextEntry
-                    style={styles.input}
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                  />
+
+                  <View style={styles.passwordWrapper}>
+                    <TextInput
+                      placeholder="••••••••"
+                      secureTextEntry={!showConfirmPassword}
+                      style={styles.passwordInput}
+                      value={confirmPassword}
+                      onChangeText={setConfirmPassword}
+                    />
+
+                    <TouchableOpacity
+                      onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                      style={styles.eyeIcon}
+                    >
+                      <Ionicons
+                        name={showConfirmPassword ? "eye-off" : "eye"}
+                        size={20}
+                        color="#64748B"
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </>
               )}
             </View>
@@ -324,5 +379,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#94A3B8",
     textAlign: "center",
+  },
+  passwordWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    marginBottom: 18
+  },
+
+  passwordInput: {
+    flex: 1,
+    padding: 14,
+    fontSize: 16
+  },
+
+  eyeIcon: {
+    paddingHorizontal: 12
+  },
+
+  forgot: {
+    color: "#2563EB",
+    fontWeight: "500"
   },
 });

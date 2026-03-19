@@ -7,9 +7,11 @@ interface AuthContextType {
   refreshToken: string | null;
   emailVerified: boolean;
   loading: boolean;
+  user: any;
   login: (accessToken: string, refreshToken: string) => Promise<void>;
   logout: () => Promise<void>;
   bootstrapAuth: () => Promise<any>;
+  updateProfile: (updatedData: any) => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType>(
@@ -29,24 +31,35 @@ export const AuthProvider = ({ children }: any) => {
 
   const bootstrapAuth = async () => {
     const refreshToken = await SecureStore.getItemAsync("refresh_token");
-    console.log("Bootstrap Refresh Token:", refreshToken);
-    if (!refreshToken) {
+    if (!refreshToken || refreshToken === "null" || refreshToken === null) {
         setLoading(false);
+        setAccessToken(null);
+        setRefreshToken(null);
         return;
       }
 
     try {
-      // const refreshRes = await refreshTokenAPI(refreshToken);
+      const refreshRes = await refreshTokenAPI(refreshToken);
+      if(refreshRes.error || !refreshRes.accessToken || !refreshRes.refreshToken) {
+        await SecureStore.deleteItemAsync("access_token");
+        await SecureStore.deleteItemAsync("refresh_token");
+        setAccessToken(null);
+        setRefreshToken(null);
+        setLoading(false);
+        return;
+      }
+      const newAccess = refreshRes.accessToken;
+      const newRefresh = refreshRes.refreshToken;
 
-      // const newAccess = refreshRes.accessToken;
+      await SecureStore.setItemAsync("refresh_token", newRefresh);
 
-      // await SecureStore.setItemAsync("access_token", newAccess);
+      await SecureStore.setItemAsync("access_token", newAccess);
 
-      // setAccessToken(newAccess);
+      setAccessToken(newAccess);
+      setRefreshToken(newRefresh);
 
-      const newAccess = await SecureStore.getItemAsync("access_tokens") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OWExNjJlYjRiYmFiMzczOWUwNDU4NjMiLCJpYXQiOjE3NzI4ODA2MDUsImV4cCI6MTc3Mjg4NDIwNX0.lAyutUfQibBWXLkyFhBKMxVQhFy4qkGIbItQ9kDPRIE";
+      // const newAccess = await SecureStore.getItemAsync("access_tokens") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OWExNjJlYjRiYmFiMzczOWUwNDU4NjMiLCJpYXQiOjE3NzI4ODA2MDUsImV4cCI6MTc3Mjg4NDIwNX0.lAyutUfQibBWXLkyFhBKMxVQhFy4qkGIbItQ9kDPRIE";
       const profile = await getProfile(newAccess);
-      // console.log("Bootstrap Profile:", profile);
       if(profile == null) {
         await SecureStore.deleteItemAsync("access_token");
         await SecureStore.deleteItemAsync("refresh_token");
@@ -66,14 +79,14 @@ export const AuthProvider = ({ children }: any) => {
     }
   };
 
-  const loadTokens = async () => {
-    const storedAccess = await SecureStore.getItemAsync("access_token");
-    const storedRefresh = await SecureStore.getItemAsync("refresh_token");
+  // const loadTokens = async () => {
+  //   const storedAccess = await SecureStore.getItemAsync("access_token");
+  //   const storedRefresh = await SecureStore.getItemAsync("refresh_token");
 
-    setAccessToken(storedAccess);
-    setRefreshToken(storedRefresh);
-    setLoading(false);
-  };
+  //   setAccessToken(storedAccess);
+  //   setRefreshToken(storedRefresh);
+  //   setLoading(false);
+  // };
 
   const login = async (newAccess: string, newRefresh: string) => {
     await SecureStore.setItemAsync("access_token", newAccess);
@@ -83,13 +96,18 @@ export const AuthProvider = ({ children }: any) => {
     setRefreshToken(newRefresh);
   };
 
-  const logout = async () => {
-    await SecureStore.deleteItemAsync("access_token");
-    await SecureStore.deleteItemAsync("refresh_token");
+ const logout = async () => {
+  await SecureStore.deleteItemAsync("access_token");
+  setAccessToken(null);
+};
 
-    setAccessToken(null);
-    setRefreshToken(null);
-  };
+const updateProfile = async (updatedData: any) => {
+  // This function can be used to update the user profile in the context after a successful API call
+  setUser((prevUser: any) => ({
+    ...prevUser,
+    ...updatedData,
+  }));
+};
 
   return (
     <AuthContext.Provider
@@ -97,10 +115,12 @@ export const AuthProvider = ({ children }: any) => {
         accessToken,
         refreshToken,
         loading,
+        user,
         login,
         logout,
         bootstrapAuth,
         emailVerified,
+        updateProfile,
       }}
     >
       {children}

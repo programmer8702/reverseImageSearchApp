@@ -24,22 +24,6 @@ function HomeStackScreen() {
   );
 }
 
-// function HistoryScreen() {
-//   return (
-//     <View style={styles.center}>
-//       <Text>History Screen</Text>
-//     </View>
-//   );
-// }
-
-// function SettingsScreen() {
-//   return (
-//     <View style={styles.center}>
-//       <Text>Settings Screen</Text>
-//     </View>
-//   );
-// }
-
 export default function MainTabs() {
   return (
     <Tab.Navigator
